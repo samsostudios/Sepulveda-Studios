@@ -1,67 +1,150 @@
+import { breakpoints } from '$utils/deviceInfo';
 import { gsap } from 'gsap';
 
-export const canvasTrack = () => {
-  class CanvasTrack {
-    private stage: HTMLElement;
-    private maxOffsetX: number;
-    private maxOffsetY: number;
-    private paddingOffsetX: number;
-    private paddingOffsetY: number;
+class CanvasTrack {
+  private stage: HTMLElement;
+  private maxOffsetX = 0;
+  private maxOffsetY = 0;
+  private paddingOffsetX = 0;
+  private paddingOffsetY = 0;
+  private deviceSize: number;
+  private deviceTouch: boolean;
+  private isEnabled = true;
+  private parallaxElements: HTMLElement[];
+  private xTo!: (v: number) => void;
+  private yTo!: (v: number) => void;
+  private parallaxConfigs: {
+    el: HTMLElement;
+    container: HTMLElement;
+    xTo: gsap.QuickToFunc;
+    yTo: gsap.QuickToFunc;
+    maxX: number;
+    maxY: number;
+  }[] = [];
 
-    private xTo: (value: number) => void;
-    private yTo: (value: number) => void;
+  constructor() {
+    this.stage = document.querySelector('.canvas_stage') as HTMLElement;
 
-    constructor() {
-      this.stage = document.querySelector('.canvas_stage') as HTMLElement;
-      gsap.set(this.stage, { width: '150vw', height: '150vh' });
-      this.maxOffsetX = 0;
-      this.maxOffsetY = 0;
-      this.paddingOffsetX = 0;
-      this.paddingOffsetY = 0;
+    this.parallaxElements = [...document.querySelectorAll('.u-img-fill.is-parallax')].map(
+      (item) => item as HTMLElement
+    );
 
-      this.calculateMovement();
+    const bp = breakpoints();
+    console.log('bp!', bp);
 
-      this.xTo = gsap.quickTo(this.stage, 'x', { duration: 2, ease: 'power3.out' });
-      this.yTo = gsap.quickTo(this.stage, 'y', { duration: 2, ease: 'power3.out' });
-
-      this.startTracking();
-      this.resizeListener();
-    }
-
-    private calculateMovement() {
-      const bounds = this.stage.getBoundingClientRect();
-
-      this.paddingOffsetX = window.innerWidth * 0.02;
-      this.paddingOffsetY = window.innerHeight * 0.02;
-
-      this.maxOffsetX = (bounds.width - window.innerWidth) / 2 + this.paddingOffsetX;
-      this.maxOffsetY = (bounds.height - window.innerHeight) / 2 + this.paddingOffsetY;
-    }
-
-    private startTracking() {
-      document.addEventListener('mousemove', (e) => {
-        const percentX = e.clientX / window.innerWidth;
-        const percentY = e.clientY / window.innerHeight;
-
-        const targetX = (percentX - 0.5) * 2 * this.maxOffsetX * -1;
-        const targetY = (percentY - 0.5) * 2 * this.maxOffsetY * -1;
-
-        this.xTo(targetX);
-        this.yTo(targetY);
-
-        // gsap.to(this.stage, {
-        //   x: targetX,
-        //   y: targetY,
-        //   ease: 'power3.out',
-        //   duration: 0.6,
-        // });
-      });
-    }
-
-    private resizeListener() {
-      window.addEventListener('resize', () => this.calculateMovement());
-    }
+    this.setupStage();
+    this.calculateMovement();
+    this.setupTrackers();
+    this.setupParallax();
+    this.startTracking();
+    this.resizeListener();
   }
-  new CanvasTrack();
-};
-export default canvasTrack;
+
+  private setupStage() {
+    gsap.set(this.stage, {
+      width: '130vw',
+      height: '130vh',
+      xPercent: -50,
+      yPercent: -50,
+      x: 0,
+      y: 0,
+    });
+  }
+
+  private calculateMovement() {
+    const bounds = this.stage.getBoundingClientRect();
+    this.paddingOffsetX = window.innerWidth * 0.05;
+    this.paddingOffsetY = window.innerHeight * 0.05;
+    this.maxOffsetX = (bounds.width - window.innerWidth) / 2 + this.paddingOffsetX;
+    this.maxOffsetY = (bounds.height - window.innerHeight) / 2 + this.paddingOffsetY;
+  }
+
+  private setupTrackers() {
+    this.xTo = gsap.quickTo(this.stage, 'x', { duration: 1.8, ease: 'power3.out' });
+    this.yTo = gsap.quickTo(this.stage, 'y', { duration: 1.8, ease: 'power3.out' });
+  }
+
+  private setupParallax() {
+    this.parallaxElements.forEach((el) => {
+      const container = el.closest('.canvas_img') as HTMLElement;
+      if (!container) return;
+
+      const containerBounds = container.getBoundingClientRect();
+      const imageBounds = el.getBoundingClientRect();
+
+      const maxX = (imageBounds.width - containerBounds.width) / 2;
+      const maxY = (imageBounds.height - containerBounds.height) / 2;
+
+      gsap.set(el, { top: '50%', left: '50%', xPercent: -50, yPercent: -50 });
+
+      this.parallaxConfigs.push({
+        el,
+        container,
+        maxX,
+        maxY,
+        xTo: gsap.quickTo(el, 'x', { duration: 1.5, ease: 'power3.out' }),
+        yTo: gsap.quickTo(el, 'y', { duration: 1.5, ease: 'power3.out' }),
+      });
+    });
+  }
+
+  private startTracking() {
+    document.addEventListener('mousemove', (e) => {
+      if (!this.isEnabled) return;
+
+      const percentX = e.clientX / window.innerWidth;
+      const percentY = e.clientY / window.innerHeight;
+
+      const targetX = (percentX - 0.5) * 2 * this.maxOffsetX * -1;
+      const targetY = (percentY - 0.5) * 2 * this.maxOffsetY * -1;
+
+      this.xTo(targetX);
+      this.yTo(targetY);
+
+      //Parallax
+      const offsetX = (percentX - 0.5) * 2;
+      const offsetY = (percentY - 0.5) * 2;
+      this.parallaxConfigs.forEach(({ xTo, yTo, maxX, maxY }) => {
+        xTo(offsetX * -maxX);
+        yTo(offsetY * -maxY);
+      });
+    });
+  }
+
+  private resizeListener() {
+    window.addEventListener('resize', () => this.calculateMovement());
+  }
+
+  public enable() {
+    this.isEnabled = true;
+  }
+
+  public disable() {
+    this.isEnabled = false;
+  }
+
+  public kill() {
+    this.disable();
+    gsap.killTweensOf(this.stage);
+    window.removeEventListener('resize', this.calculateMovement);
+    // Optional: remove mouse listener if needed
+  }
+}
+
+let instance: CanvasTrack | null = null;
+
+export function initCanvasTrack() {
+  if (!instance) {
+    instance = new CanvasTrack();
+  }
+  return instance;
+}
+
+export function getCanvasTrack() {
+  return instance;
+}
+
+export function destroyCanvasTrack() {
+  instance?.kill();
+  instance = null;
+}
