@@ -42,7 +42,7 @@ class CanvasTrack {
 
   private setupStage() {
     gsap.set(this.stage, {
-      width: '130vw',
+      // width: '130vw',
       height: '130vh',
       xPercent: -50,
       yPercent: -50,
@@ -54,14 +54,14 @@ class CanvasTrack {
   private calculateMovement() {
     const bounds = this.stage.getBoundingClientRect();
     this.paddingOffsetX = window.innerWidth * 0.05;
-    this.paddingOffsetY = window.innerHeight * 0.05;
+    this.paddingOffsetY = window.innerHeight * 0.1;
     this.maxOffsetX = (bounds.width - window.innerWidth) / 2 + this.paddingOffsetX;
     this.maxOffsetY = (bounds.height - window.innerHeight) / 2 + this.paddingOffsetY;
   }
 
   private setupTrackers() {
-    this.xTo = gsap.quickTo(this.stage, 'x', { duration: 1.8, ease: 'power3.out' });
-    this.yTo = gsap.quickTo(this.stage, 'y', { duration: 1.8, ease: 'power3.out' });
+    this.xTo = gsap.quickTo(this.stage, 'x', { duration: 1, ease: 'power3.out' });
+    this.yTo = gsap.quickTo(this.stage, 'y', { duration: 1, ease: 'power3.out' });
   }
 
   private setupParallax() {
@@ -89,11 +89,11 @@ class CanvasTrack {
   }
 
   private startTracking() {
-    document.addEventListener('mousemove', (e) => {
+    const handleMove = (clientX: number, clientY: number) => {
       if (!this.isEnabled) return;
 
-      const percentX = e.clientX / window.innerWidth;
-      const percentY = e.clientY / window.innerHeight;
+      const percentX = clientX / window.innerWidth;
+      const percentY = clientY / window.innerHeight;
 
       const targetX = (percentX - 0.5) * 2 * this.maxOffsetX * -1;
       const targetY = (percentY - 0.5) * 2 * this.maxOffsetY * -1;
@@ -101,14 +101,28 @@ class CanvasTrack {
       this.xTo(targetX);
       this.yTo(targetY);
 
-      //Parallax
       const offsetX = (percentX - 0.5) * 2;
       const offsetY = (percentY - 0.5) * 2;
+
       this.parallaxConfigs.forEach(({ xTo, yTo, maxX, maxY }) => {
         xTo(offsetX * -maxX);
         yTo(offsetY * -maxY);
       });
+    };
+    document.addEventListener('mousemove', (e) => {
+      handleMove(e.clientX, e.clientY);
     });
+
+    document.addEventListener(
+      'touchmove',
+      (e) => {
+        if (e.touches.length > 0) {
+          const touch = e.touches[0];
+          handleMove(touch.clientX, touch.clientY);
+        }
+      },
+      { passive: true }
+    );
   }
 
   private resizeListener() {

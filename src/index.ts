@@ -9,4 +9,5 @@ window.Webflow.push(() => {
 
   // loadComponent('.hero_canvas', () => import('$components/canvasTracking'));
   loadComponent('.modal_component', () => import('$components/modal'));
+  loadComponent('.preload_component', () => import('$components/preloader'));
 });
