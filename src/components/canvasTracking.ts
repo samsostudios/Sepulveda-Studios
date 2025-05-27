@@ -1,3 +1,4 @@
+// eslint-disable-next-line simple-import-sort/imports
 import { breakpoints } from '$utils/deviceInfo';
 import { gsap } from 'gsap';
 
@@ -7,8 +8,8 @@ class CanvasTrack {
   private maxOffsetY = 0;
   private paddingOffsetX = 0;
   private paddingOffsetY = 0;
-  private deviceSize: number;
-  private deviceTouch: boolean;
+  // private deviceSize: number;
+  // private deviceTouch: boolean;
   private isEnabled = true;
   private parallaxElements: HTMLElement[];
   private xTo!: (v: number) => void;

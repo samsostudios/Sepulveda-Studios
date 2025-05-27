@@ -10,8 +10,9 @@ export const modal = () => {
     private openModal: HTMLAnchorElement;
     private closeModal: HTMLAnchorElement;
     private layoutModal: HTMLElement;
-    private deviceSize: number;
+    private device: string;
     private deviceTouch: boolean;
+    private targetSize: string;
 
     constructor() {
       this.modalElement = document.querySelector('.modal_component') as HTMLElement;
@@ -21,9 +22,14 @@ export const modal = () => {
       this.openModal = document.querySelector('#modalOpen') as HTMLAnchorElement;
       this.closeModal = document.querySelector('#modalClose') as HTMLAnchorElement;
 
+      this.targetSize = '1fr 1fr';
+
       const bp = breakpoints();
-      const dt = isTouchDevice();
-      console.log('bp!', bp, dt);
+      this.device = bp[0] as string;
+
+      if (this.device === 'tablet' || this.device === 'mobile-landscape')
+        this.targetSize = '0.25fr 1fr';
+      if (this.device === 'mobile-portrait') this.targetSize = '0fr 1fr';
 
       this.listener();
     }
@@ -54,7 +60,7 @@ export const modal = () => {
         this.modalElement,
         {
           duration: 1,
-          gridTemplateColumns: '1fr 1fr',
+          gridTemplateColumns: this.targetSize,
           ease: 'power4.out',
         },
         '<0.8'
